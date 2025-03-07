@@ -1,13 +1,23 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, signOut } = useAuth();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -68,7 +78,32 @@ const Navbar = () => {
           >
             Dashboard
           </Link>
-          <Button size="sm">Get Started</Button>
+          
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span>Account</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => signOut()}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button asChild size="sm">
+              <Link to="/auth">Sign In</Link>
+            </Button>
+          )}
         </nav>
         
         {/* Mobile Menu Button */}
@@ -112,7 +147,23 @@ const Navbar = () => {
             >
               Dashboard
             </Link>
-            <Button size="sm" className="w-full">Get Started</Button>
+            
+            {user ? (
+              <>
+                <hr className="border-border" />
+                <button
+                  onClick={() => signOut()}
+                  className="text-sm font-medium py-2 transition-colors hover:text-primary flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Sign out</span>
+                </button>
+              </>
+            ) : (
+              <Button asChild className="w-full">
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            )}
           </nav>
         </div>
       )}

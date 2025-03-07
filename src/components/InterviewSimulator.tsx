@@ -4,7 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MicIcon, PauseIcon, PlayIcon, Square as StopIcon, ThumbsUpIcon, ThumbsDownIcon, RotateCwIcon } from 'lucide-react';
+import { MicIcon, PauseIcon, PlayIcon, Square, ThumbsUpIcon, ThumbsDownIcon, RotateCwIcon, Save } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 type Question = {
   id: number;
@@ -50,6 +54,10 @@ const InterviewSimulator = () => {
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [recordingTime, setRecordingTime] = useState<number>(0);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [answeredQuestions, setAnsweredQuestions] = useState<Question[]>([]);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Set initial question when interview type changes
@@ -94,6 +102,10 @@ const InterviewSimulator = () => {
     setIsRecording(false);
     setIsPaused(false);
     
+    if (currentQuestion) {
+      setAnsweredQuestions([...answeredQuestions, currentQuestion]);
+    }
+    
     // Simulate generating feedback (would be AI-generated in a real app)
     setTimeout(() => {
       setFeedback(
@@ -102,12 +114,65 @@ const InterviewSimulator = () => {
     }, 1500);
   };
 
+  const saveInterview = async () => {
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to save your interview progress.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      // Prepare data for saving
+      const interviewData = {
+        user_id: user.id,
+        role: selectedRole,
+        interview_type: interviewType,
+        questions: answeredQuestions,
+        answers: {}, // In a real app, this would contain recorded answers
+        feedback: feedback ? { text: feedback } : null,
+        score: 78 // Mock score
+      };
+
+      const { error } = await supabase
+        .from('interviews')
+        .insert(interviewData);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Your interview has been saved successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save interview. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const nextQuestion = () => {
     const availableQuestions = mockQuestions[interviewType].filter(
-      q => q.id !== currentQuestion?.id
+      q => !answeredQuestions.some(aq => aq.id === q.id) && q.id !== currentQuestion?.id
     );
-    const randomIndex = Math.floor(Math.random() * availableQuestions.length);
-    setCurrentQuestion(availableQuestions[randomIndex]);
+    
+    if (availableQuestions.length === 0) {
+      // If all questions have been answered, reset or cycle back
+      const randomIndex = Math.floor(Math.random() * mockQuestions[interviewType].length);
+      setCurrentQuestion(mockQuestions[interviewType][randomIndex]);
+    } else {
+      const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+      setCurrentQuestion(availableQuestions[randomIndex]);
+    }
+    
     setRecordingTime(0);
     setFeedback(null);
   };
@@ -208,7 +273,7 @@ const InterviewSimulator = () => {
                         onClick={stopRecording}
                         className="rounded-full h-16 w-16 flex items-center justify-center"
                       >
-                        <StopIcon className="h-6 w-6" />
+                        <Square className="h-6 w-6" />
                       </Button>
                     </>
                   )}
@@ -267,11 +332,22 @@ const InterviewSimulator = () => {
                   </Card>
                 </div>
                 
-                <div className="flex justify-center mt-6">
+                <div className="flex justify-center mt-6 space-x-4">
                   <Button onClick={nextQuestion} className="flex items-center gap-2">
                     Try Another Question
                     <RotateCwIcon className="h-4 w-4" />
                   </Button>
+                  
+                  {user && (
+                    <Button 
+                      variant="outline" 
+                      onClick={saveInterview} 
+                      className="flex items-center gap-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      Save Interview
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : (
