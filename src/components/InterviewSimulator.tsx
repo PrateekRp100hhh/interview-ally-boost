@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MicIcon, PauseIcon, PlayIcon, StopIcon, ThumbsUpIcon, ThumbsDownIcon, RotateCwIcon } from 'lucide-react';
+import { MicIcon, PauseIcon, PlayIcon, Square as StopIcon, ThumbsUpIcon, ThumbsDownIcon, RotateCwIcon } from 'lucide-react';
 
 type Question = {
   id: number;
@@ -110,6 +110,14 @@ const InterviewSimulator = () => {
     setCurrentQuestion(availableQuestions[randomIndex]);
     setRecordingTime(0);
     setFeedback(null);
+  };
+
+  const goToFeedbackTab = () => {
+    // Using querySelector to find and programmatically select the tab
+    const feedbackTab = document.querySelector('[data-value="feedback"]');
+    if (feedbackTab instanceof HTMLElement) {
+      feedbackTab.click();
+    }
   };
 
   return (

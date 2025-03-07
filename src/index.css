@@ -93,6 +93,28 @@
   }
 }
 
+@layer utilities {
+  .delay-100 {
+    transition-delay: 100ms;
+  }
+  
+  .delay-200 {
+    transition-delay: 200ms;
+  }
+  
+  .delay-300 {
+    transition-delay: 300ms;
+  }
+  
+  .delay-400 {
+    transition-delay: 400ms;
+  }
+  
+  .delay-500 {
+    transition-delay: 500ms;
+  }
+}
+
 .appear-animation > * {
   @apply opacity-0 translate-y-4 transition-all duration-700;
 }

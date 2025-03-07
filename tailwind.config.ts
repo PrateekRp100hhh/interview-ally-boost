@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -115,6 +114,13 @@ export default {
 				'fade-down': 'fade-down 0.7s ease-out',
 				'pulse-light': 'pulse-light 2s ease-in-out infinite',
 				'spin-slow': 'spin-slow 8s linear infinite'
+			},
+			transitionDelay: {
+				'100': '100ms',
+				'200': '200ms',
+				'300': '300ms',
+				'400': '400ms',
+				'500': '500ms',
 			}
 		}
 	},
