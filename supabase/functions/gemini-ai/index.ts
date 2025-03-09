@@ -30,10 +30,12 @@ serve(async (req) => {
       case 'generateQuestions':
         endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
         prompt = `Generate 3 challenging and relevant interview questions for a ${data.role} position.
+                  The job role is: "${data.role}".
                   First, interpret what skills and knowledge are required for this profession.
                   The interview type is "${data.interviewType}".
                   Make sure the questions are specific to this exact profession, not generic.
-                  Format the response as a JSON array of objects with 'id' and 'text' properties.`;
+                  Format the response as a JSON array of objects with 'id' and 'text' properties.
+                  Example format: [{"id": 1, "text": "question text"}, {"id": 2, "text": "question text"}]`;
         break;
       
       case 'generateFeedback':
@@ -114,12 +116,24 @@ serve(async (req) => {
     // Extract and parse the text from Gemini's response
     try {
       const responseText = result.candidates[0].content.parts[0].text;
+      console.log('Raw Gemini response:', responseText);
       
-      // If the response is JSON, try to parse it
-      if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
-        processedResponse = JSON.parse(responseText);
+      // If the response contains JSON, extract it
+      const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/) || 
+                        responseText.match(/\[([\s\S]*?)\]/) || 
+                        responseText.match(/\{([\s\S]*?)\}/);
+      
+      if (jsonMatch) {
+        // Try to parse the extracted JSON
+        try {
+          const jsonText = jsonMatch[0].startsWith('```') ? jsonMatch[1] : jsonMatch[0];
+          processedResponse = JSON.parse(jsonText);
+        } catch (jsonError) {
+          console.error('Error parsing JSON match:', jsonError);
+          processedResponse = { error: 'Failed to parse JSON in response', rawResponse: responseText };
+        }
       } else {
-        // Handle non-JSON responses
+        // If no JSON found, return the raw response
         processedResponse = { rawResponse: responseText };
       }
     } catch (parseError) {

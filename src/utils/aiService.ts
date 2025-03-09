@@ -28,6 +28,23 @@ export async function generateQuestions(role: string, interviewType: InterviewTy
     // Return data or fallback to mock questions if something went wrong
     if (Array.isArray(data)) {
       return data;
+    } else if (data && data.rawResponse) {
+      console.log("Raw response received:", data.rawResponse);
+      // Try to extract JSON from the rawResponse
+      try {
+        const jsonMatch = data.rawResponse.match(/```json\n([\s\S]*?)\n```/) || 
+                          data.rawResponse.match(/\[([\s\S]*?)\]/);
+        if (jsonMatch) {
+          const jsonString = jsonMatch[0].startsWith('```') ? jsonMatch[1] : jsonMatch[0];
+          const parsedData = JSON.parse(jsonString);
+          if (Array.isArray(parsedData)) {
+            return parsedData;
+          }
+        }
+      } catch (parseError) {
+        console.error("Error parsing JSON from raw response:", parseError);
+      }
+      return getDefaultQuestions(role, interviewType);
     } else {
       console.warn('Unexpected response format from Gemini AI:', data);
       return getDefaultQuestions(role, interviewType);
@@ -50,7 +67,26 @@ export async function generateFeedback(question: string, answer: string, role?: 
     });
 
     if (error) throw error;
-    return data;
+    
+    if (data && data.rawResponse) {
+      try {
+        const jsonMatch = data.rawResponse.match(/```json\n([\s\S]*?)\n```/) || 
+                          data.rawResponse.match(/\{([\s\S]*?)\}/);
+        if (jsonMatch) {
+          const jsonString = jsonMatch[0].startsWith('```') ? jsonMatch[1] : jsonMatch[0];
+          return JSON.parse(jsonString);
+        }
+      } catch (parseError) {
+        console.error("Error parsing JSON from feedback raw response:", parseError);
+      }
+    }
+    
+    return data || {
+      feedbackText: "Your answer demonstrated good knowledge and structure, but could use more specific examples.",
+      strengths: ["Clear communication", "Good structure"],
+      improvements: ["Add more specific examples", "Quantify your achievements"],
+      score: 75
+    };
   } catch (error) {
     console.error('Error generating feedback:', error);
     // Return mock feedback as fallback
@@ -74,7 +110,36 @@ export async function generateAnalytics(role: string, interviewType: InterviewTy
     });
 
     if (error) throw error;
-    return data;
+    
+    if (data && data.rawResponse) {
+      try {
+        const jsonMatch = data.rawResponse.match(/```json\n([\s\S]*?)\n```/) || 
+                          data.rawResponse.match(/\{([\s\S]*?)\}/);
+        if (jsonMatch) {
+          const jsonString = jsonMatch[0].startsWith('```') ? jsonMatch[1] : jsonMatch[0];
+          return JSON.parse(jsonString);
+        }
+      } catch (parseError) {
+        console.error("Error parsing JSON from analytics raw response:", parseError);
+      }
+    }
+    
+    return data || {
+      summary: `You've shown consistent improvement in your ${role} interview skills, particularly in communication and technical knowledge.`,
+      metrics: {
+        communication: 78,
+        content: 85,
+        confidence: 65,
+        clarity: 82,
+        structure: 90,
+      },
+      recommendations: [
+        `Practice more ${role}-specific examples`,
+        "Focus on quantifying your achievements",
+        "Improve your storytelling skills",
+        "Prepare better for follow-up questions"
+      ]
+    };
   } catch (error) {
     console.error('Error generating analytics:', error);
     // Return mock analytics as fallback

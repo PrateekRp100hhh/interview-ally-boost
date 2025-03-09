@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -237,7 +238,7 @@ const InterviewSimulator = () => {
         <Tabs defaultValue="interview" className="w-full">
           <TabsList className="grid grid-cols-2 mb-0">
             <TabsTrigger value="interview">Interview</TabsTrigger>
-            <TabsTrigger value="feedback">Feedback</TabsTrigger>
+            <TabsTrigger value="feedback" data-value="feedback">Feedback</TabsTrigger>
           </TabsList>
           
           <TabsContent value="interview" className="p-6">
@@ -245,7 +246,10 @@ const InterviewSimulator = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Role</label>
-                  <Select value={showCustomRole ? "custom" : selectedRole} onValueChange={handleRoleChange}>
+                  <Select 
+                    value={showCustomRole ? "custom" : selectedRole} 
+                    onValueChange={handleRoleChange}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
