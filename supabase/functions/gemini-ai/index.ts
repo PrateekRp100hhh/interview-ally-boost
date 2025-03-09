@@ -35,7 +35,9 @@ serve(async (req) => {
                   The interview type is "${data.interviewType}".
                   Make sure the questions are specific to this exact profession, not generic.
                   Format the response as a JSON array of objects with 'id' and 'text' properties.
-                  Example format: [{"id": 1, "text": "question text"}, {"id": 2, "text": "question text"}]`;
+                  Example format: [{"id": 1, "text": "question text"}, {"id": 2, "text": "question text"}]
+                  
+                  Do not include any explanations, introductions, or other text - ONLY return the JSON array.`;
         break;
       
       case 'generateFeedback':
@@ -52,7 +54,9 @@ serve(async (req) => {
                   - 'feedbackText' (string): Overall feedback
                   - 'strengths' (array of strings): Main strengths
                   - 'improvements' (array of strings): Areas to improve
-                  - 'score' (number): Score between 0-100`;
+                  - 'score' (number): Score between 0-100
+                  
+                  Do not include any explanations, introductions, or other text - ONLY return the JSON object.`;
         break;
       
       case 'generateAnalytics':
@@ -73,7 +77,9 @@ serve(async (req) => {
                   Format the response as a JSON object with:
                   - 'summary' (string): Overall analysis
                   - 'metrics' (object): Numerical scores for different aspects
-                  - 'recommendations' (array of strings): Specific action items`;
+                  - 'recommendations' (array of strings): Specific action items
+                  
+                  Do not include any explanations, introductions, or other text - ONLY return the JSON object.`;
         break;
       
       default:
@@ -128,13 +134,20 @@ serve(async (req) => {
         try {
           const jsonText = jsonMatch[0].startsWith('```') ? jsonMatch[1] : jsonMatch[0];
           processedResponse = JSON.parse(jsonText);
+          console.log("Successfully parsed JSON response:", processedResponse);
         } catch (jsonError) {
           console.error('Error parsing JSON match:', jsonError);
           processedResponse = { error: 'Failed to parse JSON in response', rawResponse: responseText };
         }
       } else {
-        // If no JSON found, return the raw response
-        processedResponse = { rawResponse: responseText };
+        // If no JSON found, try to directly parse the response
+        try {
+          processedResponse = JSON.parse(responseText);
+          console.log("Successfully parsed direct JSON response:", processedResponse);
+        } catch (directParseError) {
+          console.error('Error direct parsing response:', directParseError);
+          processedResponse = { rawResponse: responseText };
+        }
       }
     } catch (parseError) {
       console.error('Error parsing Gemini response:', parseError);

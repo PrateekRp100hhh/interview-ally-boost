@@ -16,6 +16,8 @@ export async function generateQuestions(role: string, interviewType: InterviewTy
       throw new Error('A valid profession is required');
     }
     
+    console.log(`Generating questions for role: ${role}, type: ${interviewType}`);
+    
     const { data, error } = await supabase.functions.invoke('gemini-ai', {
       body: {
         action: 'generateQuestions',
@@ -23,17 +25,44 @@ export async function generateQuestions(role: string, interviewType: InterviewTy
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error from gemini-ai function:", error);
+      throw error;
+    }
     
-    // Return data or fallback to mock questions if something went wrong
+    console.log("Response from gemini-ai function:", data);
+    
+    // If data is already an array, return it
     if (Array.isArray(data)) {
       return data;
-    } else if (data && data.rawResponse) {
+    } 
+    
+    // Check if data has an array property (some API responses might nest the array)
+    const arrayProperties = Object.keys(data || {}).filter(key => Array.isArray(data[key]));
+    if (arrayProperties.length > 0) {
+      return data[arrayProperties[0]];
+    }
+    
+    // Check for rawResponse and try to parse JSON from it
+    if (data && data.rawResponse) {
       console.log("Raw response received:", data.rawResponse);
       // Try to extract JSON from the rawResponse
       try {
+        // Try direct JSON parse first
+        try {
+          const directParse = JSON.parse(data.rawResponse);
+          if (Array.isArray(directParse)) {
+            return directParse;
+          }
+        } catch (directParseError) {
+          console.log("Direct parse failed, trying regex extraction");
+        }
+        
+        // Try regex extraction
         const jsonMatch = data.rawResponse.match(/```json\n([\s\S]*?)\n```/) || 
-                          data.rawResponse.match(/\[([\s\S]*?)\]/);
+                          data.rawResponse.match(/\[([\s\S]*?)\]/) ||
+                          data.rawResponse.match(/^\s*\[\s*\{/);
+                          
         if (jsonMatch) {
           const jsonString = jsonMatch[0].startsWith('```') ? jsonMatch[1] : jsonMatch[0];
           const parsedData = JSON.parse(jsonString);
@@ -44,11 +73,10 @@ export async function generateQuestions(role: string, interviewType: InterviewTy
       } catch (parseError) {
         console.error("Error parsing JSON from raw response:", parseError);
       }
-      return getDefaultQuestions(role, interviewType);
-    } else {
-      console.warn('Unexpected response format from Gemini AI:', data);
-      return getDefaultQuestions(role, interviewType);
     }
+    
+    console.warn('Unexpected response format from Gemini AI, using fallback questions');
+    return getDefaultQuestions(role, interviewType);
   } catch (error) {
     console.error('Error generating questions:', error);
     // Return mock questions as fallback

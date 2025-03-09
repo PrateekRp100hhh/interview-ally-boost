@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -249,15 +248,20 @@ const InterviewSimulator = () => {
                   <Select 
                     value={showCustomRole ? "custom" : selectedRole} 
                     onValueChange={handleRoleChange}
+                    defaultValue={selectedRole}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
-                      {["Software Engineer", "Product Manager", "Data Scientist", "UX Designer", 
-                      "Marketing Manager", "Sales Representative", "Project Manager", "HR Specialist"].map((role) => (
-                        <SelectItem key={role} value={role}>{role}</SelectItem>
-                      ))}
+                      <SelectItem value="Software Engineer">Software Engineer</SelectItem>
+                      <SelectItem value="Product Manager">Product Manager</SelectItem>
+                      <SelectItem value="Data Scientist">Data Scientist</SelectItem>
+                      <SelectItem value="UX Designer">UX Designer</SelectItem>
+                      <SelectItem value="Marketing Manager">Marketing Manager</SelectItem>
+                      <SelectItem value="Sales Representative">Sales Representative</SelectItem>
+                      <SelectItem value="Project Manager">Project Manager</SelectItem>
+                      <SelectItem value="HR Specialist">HR Specialist</SelectItem>
                       <SelectItem value="custom">Enter Custom Profession</SelectItem>
                     </SelectContent>
                   </Select>
