@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -60,7 +59,6 @@ const InterviewSimulator = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set initial question when interview type changes
     const randomIndex = Math.floor(Math.random() * mockQuestions[interviewType].length);
     setCurrentQuestion(mockQuestions[interviewType][randomIndex]);
     setFeedback(null);
@@ -106,7 +104,6 @@ const InterviewSimulator = () => {
       setAnsweredQuestions([...answeredQuestions, currentQuestion]);
     }
     
-    // Simulate generating feedback (would be AI-generated in a real app)
     setTimeout(() => {
       setFeedback(
         "Your answer was well-structured and covered key points effectively. Consider providing more specific examples to strengthen your response. Your pacing was good, and you maintained a confident tone throughout your answer."
@@ -126,15 +123,14 @@ const InterviewSimulator = () => {
     }
 
     try {
-      // Prepare data for saving
       const interviewData = {
         user_id: user.id,
         role: selectedRole,
         interview_type: interviewType,
         questions: answeredQuestions,
-        answers: {}, // In a real app, this would contain recorded answers
+        answers: {},
         feedback: feedback ? { text: feedback } : null,
-        score: 78 // Mock score
+        score: 78
       };
 
       const { error } = await supabase
@@ -165,7 +161,6 @@ const InterviewSimulator = () => {
     );
     
     if (availableQuestions.length === 0) {
-      // If all questions have been answered, reset or cycle back
       const randomIndex = Math.floor(Math.random() * mockQuestions[interviewType].length);
       setCurrentQuestion(mockQuestions[interviewType][randomIndex]);
     } else {
@@ -178,9 +173,8 @@ const InterviewSimulator = () => {
   };
 
   const goToFeedbackTab = () => {
-    // Using querySelector to find and programmatically select the tab
     const feedbackTab = document.querySelector('[data-value="feedback"]');
-    if (feedbackTab instanceof HTMLElement) {
+    if (feedbackTab && feedbackTab instanceof HTMLElement) {
       feedbackTab.click();
     }
   };
@@ -359,7 +353,12 @@ const InterviewSimulator = () => {
                 <p className="text-muted-foreground mb-4">
                   Record your answer to receive AI-powered feedback on your interview performance.
                 </p>
-                <Button onClick={() => document.querySelector('[data-value="interview"]')?.click()}>
+                <Button onClick={() => {
+                  const interviewTab = document.querySelector('[data-value="interview"]');
+                  if (interviewTab && interviewTab instanceof HTMLElement) {
+                    interviewTab.click();
+                  }
+                }}>
                   Go to Interview
                 </Button>
               </div>

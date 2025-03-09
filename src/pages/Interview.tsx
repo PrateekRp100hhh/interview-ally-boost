@@ -160,7 +160,12 @@ const Interview = () => {
                       </div>
                       
                       <div className="mt-6 text-center">
-                        <Button onClick={() => document.querySelector('[data-value="simulator"]')?.click()}>
+                        <Button onClick={() => {
+                          const simulatorTab = document.querySelector('[data-value="simulator"]');
+                          if (simulatorTab && simulatorTab instanceof HTMLElement) {
+                            simulatorTab.click();
+                          }
+                        }}>
                           Return to Simulator
                         </Button>
                       </div>
