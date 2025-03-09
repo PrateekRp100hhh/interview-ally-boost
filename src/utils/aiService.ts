@@ -11,6 +11,11 @@ export type InterviewType = 'behavioral' | 'technical' | 'leadership';
 // Function to generate interview questions
 export async function generateQuestions(role: string, interviewType: InterviewType): Promise<Question[]> {
   try {
+    // Validate input
+    if (!role || role.trim() === '') {
+      throw new Error('A valid profession is required');
+    }
+    
     const { data, error } = await supabase.functions.invoke('gemini-ai', {
       body: {
         action: 'generateQuestions',
@@ -35,12 +40,12 @@ export async function generateQuestions(role: string, interviewType: InterviewTy
 }
 
 // Function to generate feedback for an answer
-export async function generateFeedback(question: string, answer: string) {
+export async function generateFeedback(question: string, answer: string, role?: string) {
   try {
     const { data, error } = await supabase.functions.invoke('gemini-ai', {
       body: {
         action: 'generateFeedback',
-        data: { question, answer }
+        data: { question, answer, role }
       }
     });
 
@@ -74,7 +79,7 @@ export async function generateAnalytics(role: string, interviewType: InterviewTy
     console.error('Error generating analytics:', error);
     // Return mock analytics as fallback
     return {
-      summary: "You've shown consistent improvement in your interview skills, particularly in communication and technical knowledge.",
+      summary: `You've shown consistent improvement in your ${role} interview skills, particularly in communication and technical knowledge.`,
       metrics: {
         communication: 78,
         content: 85,
@@ -83,7 +88,7 @@ export async function generateAnalytics(role: string, interviewType: InterviewTy
         structure: 90,
       },
       recommendations: [
-        "Practice more industry-specific examples",
+        `Practice more ${role}-specific examples`,
         "Focus on quantifying your achievements",
         "Improve your storytelling skills",
         "Prepare better for follow-up questions"
@@ -101,8 +106,8 @@ function getDefaultQuestions(role: string, type: InterviewType): Question[] {
       { id: 3, text: `As a ${role}, tell me about a time when you failed at something. How did you handle it?` },
     ],
     technical: [
-      { id: 1, text: `Explain how you would approach debugging a complex issue in a large codebase as a ${role}.` },
-      { id: 2, text: `Describe a technically challenging project you worked on as a ${role} and how you solved the problems you encountered.` },
+      { id: 1, text: `Explain how you would approach solving a complex problem in your role as a ${role}.` },
+      { id: 2, text: `Describe a technically challenging project you worked on as a ${role} and how you overcame obstacles.` },
       { id: 3, text: `How do you stay updated with the latest technologies and methodologies in your field as a ${role}?` },
     ],
     leadership: [

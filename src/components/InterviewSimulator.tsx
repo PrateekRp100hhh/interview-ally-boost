@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { MicIcon, PauseIcon, PlayIcon, Square, ThumbsUpIcon, ThumbsDownIcon, RotateCwIcon, Save, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,6 +18,8 @@ type Question = {
 
 const InterviewSimulator = () => {
   const [selectedRole, setSelectedRole] = useState<string>("Software Engineer");
+  const [customRole, setCustomRole] = useState<string>("");
+  const [showCustomRole, setShowCustomRole] = useState<boolean>(false);
   const [interviewType, setInterviewType] = useState<InterviewType>("behavioral");
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -33,12 +36,25 @@ const InterviewSimulator = () => {
 
   useEffect(() => {
     fetchQuestions();
-  }, [selectedRole, interviewType]);
+  }, [selectedRole, customRole, showCustomRole, interviewType]);
   
   const fetchQuestions = async () => {
     setIsLoadingQuestion(true);
     try {
-      const fetchedQuestions = await generateQuestions(selectedRole, interviewType);
+      // Use custom role if selected, otherwise use the predefined role
+      const roleToUse = showCustomRole ? customRole : selectedRole;
+      
+      if (!roleToUse || roleToUse.trim() === '') {
+        toast({
+          title: "Error",
+          description: "Please enter a valid profession or select one from the list.",
+          variant: "destructive",
+        });
+        setIsLoadingQuestion(false);
+        return;
+      }
+      
+      const fetchedQuestions = await generateQuestions(roleToUse, interviewType);
       setQuestions(fetchedQuestions);
       
       if (fetchedQuestions?.length > 0) {
@@ -113,7 +129,7 @@ const InterviewSimulator = () => {
     
     try {
       if (currentQuestion) {
-        const feedbackData = await generateFeedback(currentQuestion.text, simulatedAnswer);
+        const feedbackData = await generateFeedback(currentQuestion.text, simulatedAnswer, showCustomRole ? customRole : selectedRole);
         setFeedback(feedbackData.feedbackText || "Your answer demonstrated good knowledge and structure, but could use more specific examples.");
         
         goToFeedbackTab();
@@ -205,6 +221,16 @@ const InterviewSimulator = () => {
     }
   };
 
+  const handleRoleChange = (value: string) => {
+    if (value === "custom") {
+      setShowCustomRole(true);
+      setSelectedRole("");
+    } else {
+      setShowCustomRole(false);
+      setSelectedRole(value);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Card className="glass-card border-0 overflow-hidden">
@@ -219,7 +245,7 @@ const InterviewSimulator = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Role</label>
-                  <Select value={selectedRole} onValueChange={setSelectedRole}>
+                  <Select value={showCustomRole ? "custom" : selectedRole} onValueChange={handleRoleChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
@@ -228,8 +254,20 @@ const InterviewSimulator = () => {
                       "Marketing Manager", "Sales Representative", "Project Manager", "HR Specialist"].map((role) => (
                         <SelectItem key={role} value={role}>{role}</SelectItem>
                       ))}
+                      <SelectItem value="custom">Enter Custom Profession</SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  {showCustomRole && (
+                    <div className="mt-2">
+                      <Input
+                        placeholder="Enter your profession"
+                        value={customRole}
+                        onChange={(e) => setCustomRole(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
                 </div>
                 
                 <div>

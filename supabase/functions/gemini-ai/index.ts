@@ -29,19 +29,23 @@ serve(async (req) => {
     switch (action) {
       case 'generateQuestions':
         endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-        prompt = `Generate 3 challenging interview questions for a ${data.role} position. 
-                  The interview type is "${data.interviewType}". 
+        prompt = `Generate 3 challenging and relevant interview questions for a ${data.role} position.
+                  First, interpret what skills and knowledge are required for this profession.
+                  The interview type is "${data.interviewType}".
+                  Make sure the questions are specific to this exact profession, not generic.
                   Format the response as a JSON array of objects with 'id' and 'text' properties.`;
         break;
       
       case 'generateFeedback':
         endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-        prompt = `You are an expert interview coach. Analyze this interview answer:
+        prompt = `You are an expert interview coach specializing in ${data.role || 'professional'} positions.
+                  
+                  Analyze this interview answer:
                   
                   Question: ${data.question}
                   Answer: ${data.answer}
                   
-                  Provide constructive feedback on this answer. Include strengths, areas for improvement, and an overall score out of 100.
+                  Provide constructive feedback specific to this profession. Include strengths, areas for improvement, and an overall score out of 100.
                   Format the response as a JSON object with these properties:
                   - 'feedbackText' (string): Overall feedback
                   - 'strengths' (array of strings): Main strengths
@@ -51,7 +55,7 @@ serve(async (req) => {
       
       case 'generateAnalytics':
         endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-        prompt = `Analyze the following interview data to provide performance insights:
+        prompt = `Analyze the following interview data for a ${data.role} position to provide performance insights:
                   
                   Role: ${data.role}
                   Interview Type: ${data.interviewType}
@@ -60,9 +64,9 @@ serve(async (req) => {
                   
                   Generate a comprehensive analysis including:
                   1. Overall performance trends
-                  2. Key strengths demonstrated
-                  3. Specific improvement areas
-                  4. Recommendations for future interviews
+                  2. Key strengths demonstrated specific to this profession
+                  3. Specific improvement areas relevant to this career path
+                  4. Recommendations for future interviews in this field
                   
                   Format the response as a JSON object with:
                   - 'summary' (string): Overall analysis
