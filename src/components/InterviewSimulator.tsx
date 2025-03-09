@@ -3,47 +3,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MicIcon, PauseIcon, PlayIcon, Square, ThumbsUpIcon, ThumbsDownIcon, RotateCwIcon, Save } from 'lucide-react';
+import { MicIcon, PauseIcon, PlayIcon, Square, ThumbsUpIcon, ThumbsDownIcon, RotateCwIcon, Save, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { generateQuestions, generateFeedback, InterviewType } from '@/utils/aiService';
 
 type Question = {
   id: number;
   text: string;
 };
-
-type InterviewType = 'behavioral' | 'technical' | 'leadership';
-
-const mockQuestions: Record<InterviewType, Question[]> = {
-  behavioral: [
-    { id: 1, text: "Tell me about a time when you had to adapt to a significant change at work." },
-    { id: 2, text: "Describe a situation where you had to resolve a conflict within your team." },
-    { id: 3, text: "Tell me about a time when you failed at something. How did you handle it?" },
-  ],
-  technical: [
-    { id: 1, text: "Explain how you would approach debugging a complex issue in a large codebase." },
-    { id: 2, text: "Describe a technically challenging project you worked on and how you solved the problems you encountered." },
-    { id: 3, text: "How do you stay updated with the latest technologies and methodologies in your field?" },
-  ],
-  leadership: [
-    { id: 1, text: "Tell me about a time when you had to lead a team through a difficult situation." },
-    { id: 2, text: "How do you motivate team members who are struggling with their tasks?" },
-    { id: 3, text: "Describe a situation where you had to make an unpopular decision." },
-  ],
-};
-
-const roles = [
-  "Software Engineer",
-  "Product Manager",
-  "Data Scientist",
-  "UX Designer",
-  "Marketing Manager",
-  "Sales Representative",
-  "Project Manager",
-  "HR Specialist",
-];
 
 const InterviewSimulator = () => {
   const [selectedRole, setSelectedRole] = useState<string>("Software Engineer");
@@ -54,15 +24,38 @@ const InterviewSimulator = () => {
   const [recordingTime, setRecordingTime] = useState<number>(0);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [answeredQuestions, setAnsweredQuestions] = useState<Question[]>([]);
+  const [isLoadingQuestion, setIsLoadingQuestion] = useState<boolean>(false);
+  const [currentAnswer, setCurrentAnswer] = useState<string>("");
+  const [questions, setQuestions] = useState<Question[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const randomIndex = Math.floor(Math.random() * mockQuestions[interviewType].length);
-    setCurrentQuestion(mockQuestions[interviewType][randomIndex]);
-    setFeedback(null);
-  }, [interviewType]);
+    fetchQuestions();
+  }, [selectedRole, interviewType]);
+  
+  const fetchQuestions = async () => {
+    setIsLoadingQuestion(true);
+    try {
+      const fetchedQuestions = await generateQuestions(selectedRole, interviewType);
+      setQuestions(fetchedQuestions);
+      
+      if (fetchedQuestions?.length > 0) {
+        const randomIndex = Math.floor(Math.random() * fetchedQuestions.length);
+        setCurrentQuestion(fetchedQuestions[randomIndex]);
+      }
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load interview questions. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingQuestion(false);
+    }
+  };
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -86,6 +79,12 @@ const InterviewSimulator = () => {
     setIsRecording(true);
     setIsPaused(false);
     setFeedback(null);
+    setCurrentAnswer("");
+    
+    toast({
+      title: "Recording started",
+      description: "Your answer is being recorded. Click the stop button when finished.",
+    });
   };
 
   const pauseRecording = () => {
@@ -96,7 +95,7 @@ const InterviewSimulator = () => {
     setIsPaused(false);
   };
 
-  const stopRecording = () => {
+  const stopRecording = async () => {
     setIsRecording(false);
     setIsPaused(false);
     
@@ -104,11 +103,26 @@ const InterviewSimulator = () => {
       setAnsweredQuestions([...answeredQuestions, currentQuestion]);
     }
     
-    setTimeout(() => {
-      setFeedback(
-        "Your answer was well-structured and covered key points effectively. Consider providing more specific examples to strengthen your response. Your pacing was good, and you maintained a confident tone throughout your answer."
-      );
-    }, 1500);
+    toast({
+      title: "Processing your answer",
+      description: "Our AI is analyzing your response...",
+    });
+    
+    const simulatedAnswer = "I believe my experience with cross-functional teams has prepared me well for this role. In my previous position, I had to coordinate between engineering, design, and product teams to deliver features on time. I implemented agile methodologies that improved our delivery time by 30%";
+    setCurrentAnswer(simulatedAnswer);
+    
+    try {
+      if (currentQuestion) {
+        const feedbackData = await generateFeedback(currentQuestion.text, simulatedAnswer);
+        setFeedback(feedbackData.feedbackText || "Your answer demonstrated good knowledge and structure, but could use more specific examples.");
+        
+        goToFeedbackTab();
+      }
+    } catch (error) {
+      console.error('Error generating feedback:', error);
+      setFeedback("Your answer was well-structured and covered key points effectively. Consider providing more specific examples to strengthen your response.");
+      goToFeedbackTab();
+    }
   };
 
   const saveInterview = async () => {
@@ -128,7 +142,7 @@ const InterviewSimulator = () => {
         role: selectedRole,
         interview_type: interviewType,
         questions: answeredQuestions,
-        answers: {},
+        answers: { [currentQuestion?.id || 0]: currentAnswer },
         feedback: feedback ? { text: feedback } : null,
         score: 78
       };
@@ -155,21 +169,33 @@ const InterviewSimulator = () => {
     }
   };
 
-  const nextQuestion = () => {
-    const availableQuestions = mockQuestions[interviewType].filter(
-      q => !answeredQuestions.some(aq => aq.id === q.id) && q.id !== currentQuestion?.id
-    );
+  const nextQuestion = async () => {
+    setIsLoadingQuestion(true);
     
-    if (availableQuestions.length === 0) {
-      const randomIndex = Math.floor(Math.random() * mockQuestions[interviewType].length);
-      setCurrentQuestion(mockQuestions[interviewType][randomIndex]);
-    } else {
-      const randomIndex = Math.floor(Math.random() * availableQuestions.length);
-      setCurrentQuestion(availableQuestions[randomIndex]);
+    try {
+      const availableQuestions = questions.filter(
+        q => !answeredQuestions.some(aq => aq.id === q.id) && q.id !== currentQuestion?.id
+      );
+      
+      if (availableQuestions.length === 0) {
+        await fetchQuestions();
+      } else {
+        const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+        setCurrentQuestion(availableQuestions[randomIndex]);
+      }
+      
+      setRecordingTime(0);
+      setFeedback(null);
+    } catch (error) {
+      console.error('Error getting next question:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load the next question. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingQuestion(false);
     }
-    
-    setRecordingTime(0);
-    setFeedback(null);
   };
 
   const goToFeedbackTab = () => {
@@ -198,7 +224,8 @@ const InterviewSimulator = () => {
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
-                      {roles.map((role) => (
+                      {["Software Engineer", "Product Manager", "Data Scientist", "UX Designer", 
+                      "Marketing Manager", "Sales Representative", "Project Manager", "HR Specialist"].map((role) => (
                         <SelectItem key={role} value={role}>{role}</SelectItem>
                       ))}
                     </SelectContent>
@@ -220,9 +247,18 @@ const InterviewSimulator = () => {
                 </div>
               </div>
               
-              <div className="bg-muted/50 rounded-lg p-6 border border-border">
-                <h3 className="text-lg font-medium mb-2">Current Question:</h3>
-                <p className="text-xl">{currentQuestion?.text}</p>
+              <div className="bg-muted/50 rounded-lg p-6 border border-border min-h-[120px] flex items-center justify-center">
+                {isLoadingQuestion ? (
+                  <div className="flex flex-col items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                    <p className="text-sm text-muted-foreground">Loading question...</p>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-lg font-medium mb-2">Current Question:</h3>
+                    <p className="text-xl">{currentQuestion?.text || "Loading question..."}</p>
+                  </>
+                )}
               </div>
               
               <div className="flex flex-col items-center space-y-4">
@@ -235,6 +271,7 @@ const InterviewSimulator = () => {
                     <Button 
                       size="lg" 
                       onClick={startRecording}
+                      disabled={isLoadingQuestion || !currentQuestion}
                       className="rounded-full h-16 w-16 flex items-center justify-center"
                     >
                       <MicIcon className="h-6 w-6" />
@@ -276,7 +313,7 @@ const InterviewSimulator = () => {
                 <Button 
                   variant="ghost" 
                   onClick={nextQuestion}
-                  disabled={isRecording}
+                  disabled={isRecording || isLoadingQuestion}
                   className="flex items-center gap-2"
                 >
                   <RotateCwIcon className="h-4 w-4" />

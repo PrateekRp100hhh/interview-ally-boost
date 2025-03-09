@@ -19,15 +19,18 @@ export async function generateQuestions(role: string, interviewType: InterviewTy
     });
 
     if (error) throw error;
-    return data;
+    
+    // Return data or fallback to mock questions if something went wrong
+    if (Array.isArray(data)) {
+      return data;
+    } else {
+      console.warn('Unexpected response format from Gemini AI:', data);
+      return getDefaultQuestions(role, interviewType);
+    }
   } catch (error) {
     console.error('Error generating questions:', error);
     // Return mock questions as fallback
-    return [
-      { id: 1, text: `What makes you a good candidate for this ${role} position?` },
-      { id: 2, text: "Describe your greatest professional achievement." },
-      { id: 3, text: "How do you handle difficult challenges in your work?" },
-    ];
+    return getDefaultQuestions(role, interviewType);
   }
 }
 
@@ -87,4 +90,27 @@ export async function generateAnalytics(role: string, interviewType: InterviewTy
       ]
     };
   }
+}
+
+// Fallback questions by category
+function getDefaultQuestions(role: string, type: InterviewType): Question[] {
+  const defaultQuestions: Record<InterviewType, Question[]> = {
+    behavioral: [
+      { id: 1, text: `Tell me about a time when you had to adapt to a significant change at work as a ${role}.` },
+      { id: 2, text: `Describe a situation where you had to resolve a conflict within your team during your ${role} work.` },
+      { id: 3, text: `As a ${role}, tell me about a time when you failed at something. How did you handle it?` },
+    ],
+    technical: [
+      { id: 1, text: `Explain how you would approach debugging a complex issue in a large codebase as a ${role}.` },
+      { id: 2, text: `Describe a technically challenging project you worked on as a ${role} and how you solved the problems you encountered.` },
+      { id: 3, text: `How do you stay updated with the latest technologies and methodologies in your field as a ${role}?` },
+    ],
+    leadership: [
+      { id: 1, text: `Tell me about a time when you had to lead a team through a difficult situation in your ${role} position.` },
+      { id: 2, text: `As a ${role}, how do you motivate team members who are struggling with their tasks?` },
+      { id: 3, text: `Describe a situation where you had to make an unpopular decision as a ${role}.` },
+    ],
+  };
+  
+  return defaultQuestions[type];
 }
